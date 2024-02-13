@@ -2,16 +2,16 @@ import os
 from scripts.util import *
 
 ####### SELECT CONFIG FILE HERE #######
-configfile: "config/config_NNNlib2b_20211216.yaml"
+configfile: "config/config_NNNlib2b_20240209.yaml"
 #######################################
 
 # --- Define Global Variables --- #
 
 datadir = config['datadir']
-expdir = os.path.normpath(datadir + '/../') + '/'
+expdir = os.path.normpath(os.path.join(datadir, '/../'))# + '/'
 sequencingResult = config["sequencingResult"]
-normalizedSeries = datadir + "series_normalized/" + config["imagingExperiment"] + "_normalized.pkl"
-fittedVariant = datadir + "fitted_variant/" + config["imagingExperiment"] + ".CPvariant.gz"
+normalizedSeries = os.path.join(datadir, "series_normalized/",  config["imagingExperiment"] + "_normalized.pkl")
+fittedVariant = os.path.join(datadir, "fitted_variant/",  config["imagingExperiment"] + ".CPvariant.gz")
 # hardcoded tile numbers
 TILES = ['tile%03d'%i for i in range(1,19)]
 TILES_NO_ZERO_PAD = ['tile%d'%i for i in range(1,19)]
@@ -20,8 +20,9 @@ TILES_NO_ZERO_PAD = ['tile%d'%i for i in range(1,19)]
 assert config["processingType"] in ['pre-array', 'post-array']
 if config["processingType"] == "pre-array":
     fluor_files = []
-    requested_output = ["%s_STATS.csv" % sequencingResult.strip('.CPseq'),
-                        expand(expdir + "fig/fiducial/{tile}_Bottom_fiducial.png", tile=TILES)]
+    # requested_output = "/oak/stanford/groups/wjg/kyx/data/rf003/sequence/ALL.CPseq"
+    requested_output = ["%s_STATS.csv" % sequencingResult.replace('.CPseq', ''),
+                        expand(os.path.join(expdir, "fig/fiducial/{tile}_Bottom_fiducial.png"), tile=TILES)]
 elif config["processingType"] == "post-array":
     fluor_files = get_fluor_names_from_mapfile(config["mapfile"], config["tifdir"], config["fluordir"])
     if config["fitting"] == "NNN":
@@ -63,9 +64,9 @@ rule run_FLASH:
         r1 = config['fastq']['read1'],
         r2 = config['fastq']['read2']
     output:
-        datadir + "FLASH_output/out.extendedFrags.fastq"
+        os.path.join(datadir, "FLASH_output/out.extendedFrags.fastq")
     params:
-        outdir = datadir + "FLASH_output"
+        outdir = os.path.join(datadir, "FLASH_output")
     threads:
         1
     shell:
@@ -76,9 +77,9 @@ rule run_FLASH:
 
 rule convert_FLASH_to_CPseq:
     input:
-        datadir + "FLASH_output/out.extendedFrags.fastq"
+        os.path.join(datadir, "FLASH_output/out.extendedFrags.fastq")
     output:
-        datadir + "paired_reads/ConsensusPairedReads.CPseq"
+        os.path.join(datadir, "paired_reads/ConsensusPairedReads.CPseq")
     params:
         cluster_memory = "16G"
     threads:
@@ -92,7 +93,7 @@ rule convert_FLASH_to_CPseq:
 
 rule align_consensus_read_to_library:
     input:
-        reads = datadir + "paired_reads/ConsensusPairedReads.CPseq",
+        reads = os.path.join(datadir, "paired_reads/ConsensusPairedReads.CPseq"),
         reference = config["referenceLibrary"],
         scoring_matrix = os.path.join(os.getcwd(), "data/reference/NUC.4.4") # need this to check existence of the matrix file
     output:
@@ -118,6 +119,8 @@ rule get_stats:
         sequencingResult
     output:
         "%s_STATS.csv" % sequencingResult.strip('.CPseq')
+    params:
+        cluster_memory = "16G"
     threads:
         1
     conda:
@@ -131,46 +134,46 @@ rule merge_fastqs_to_CPseq:
         r1 = config['fastq']['read1'],
         r2 = config['fastq']['read2']
     output:
-        datadir + "sequence/ALL.CPseq"
+        os.path.join(datadir, "sequence/ALL.CPseq")
     params:
         cluster_memory = "10G",
         cluster_time = "10:00:00"
     threads:
         2
     conda:
-        "envs/ame.yml"
+        "envs/py36.yml"
     shell:
         """
-        python scripts/array_tools/CPscripts/mergeFastqReadsToCPseq.py -r1 {input.r1} -r2 {input.r2} -o {output} 
+        python3 scripts/array_tools/CPscripts/mergeFastqReadsToCPseq.py -r1 {input.r1} -r2 {input.r2} -o {output} 
         """
 
 rule split_CPseq:
     input:
-        datadir + "sequence/ALL.CPseq"
+        os.path.join(datadir, "sequence/ALL.CPseq")
     output:
-        expand(datadir + "tiles/ALL_{tile}_Bottom.CPseq", tile=TILES)
+        expand(os.path.join(datadir, "tiles/ALL_{tile}_Bottom.CPseq"), tile=TILES)
     threads:
         1
     params:
         cluster_memory = "1G",
         cluster_time = "5:00:00",
-        tiledir = datadir + "tiles/"
+        tiledir = os.path.join(datadir, "tiles/")
     conda:
-        "envs/ame.yml"
+        "envs/py36.yml"
     shell:
         """
-        python scripts/array_tools/CPscripts/splitCPseqIntoTiles.py -o {params.tiledir} -s bottom {input}
+        python3 scripts/array_tools/CPscripts/splitCPseqIntoTiles.py -o {params.tiledir} -s bottom {input}
         """
 
 rule filter_tiles:
     input:
-        expand(datadir + "tiles/ALL_{tile}_Bottom.CPseq", tile=TILES),
+        expand(os.path.join(datadir, "tiles/ALL_{tile}_Bottom.CPseq"), tile=TILES),
         config["FIDfilter"]
     output:
-        expand(datadir + "filtered_tiles/ALL_{tile}_Bottom_filtered.CPseq", tile=TILES)
+        expand(os.path.join(datadir, "filtered_tiles/ALL_{tile}_Bottom_filtered.CPseq"), tile=TILES)
     params:
-        tiledir = datadir + "tiles/",
-        filteredtiledir = datadir + "filtered_tiles/",
+        tiledir = os.path.join(datadir, "tiles/"),
+        filteredtiledir = os.path.join(datadir, "filtered_tiles/"),
         cluster_memory = "16G",
         cluster_time = "5:00:00"
     conda:
@@ -188,13 +191,13 @@ rule filter_tiles:
        """
 rule filter_tiles_libregion:
     input:
-        expand(datadir + "tiles/ALL_{tile}_Bottom.CPseq", tile=TILES),
+        expand(os.path.join(datadir, "tiles/ALL_{tile}_Bottom.CPseq"), tile=TILES),
         config["LibRegionFilter"]
     output:
-        expand(datadir + "filtered_tiles_libregion/ALL_{tile}_Bottom_filtered.CPseq", tile=TILES)
+        expand(os.path.join(datadir, "filtered_tiles_libregion/ALL_{tile}_Bottom_filtered.CPseq"), tile=TILES)
     params:
-        tiledir = datadir + "tiles/",
-        filteredtiledir = datadir + "filtered_tiles_libregion/",
+        tiledir = os.path.join(datadir, "tiles/"),
+        filteredtiledir = os.path.join(datadir, "filtered_tiles_libregion/"),
         cluster_memory = "16G",
         cluster_time = "5:00:00"
     conda:
@@ -211,9 +214,9 @@ rule filter_tiles_libregion:
         
 rule plot_fiducials:
     input:
-        expand(datadir + "filtered_tiles/ALL_{tile}_Bottom_filtered.CPseq", tile=TILES)
+        expand(os.path.join(datadir, "filtered_tiles/ALL_{tile}_Bottom_filtered.CPseq"), tile=TILES)
     output:
-        expand(expdir + "fig/fiducial/{tile}_Bottom_fiducial.png", tile=TILES)
+        expand(os.path.join(expdir, "fig/fiducial/{tile}_Bottom_fiducial.png"), tile=TILES)
     conda:
         "envs/plotting.yml"
     params:
@@ -228,18 +231,18 @@ rule plot_fiducials:
 ## snakemake checks one tile per condition as input/output and submit one job per condition
 rule quantify_images:
     input:
-        image = config["tifdir"] + "{condition}/%s_{tile}_{channel}_600ms_{timestamp}.tif" % config["experimentName"],
-        libregion = expand(datadir + "filtered_tiles_libregion/ALL_{tile}_Bottom_filtered.CPseq", tile=TILES)
+        image = os.path.join(config["tifdir"], "{condition}/%s_{tile}_{channel}_600ms_{timestamp}.tif") % config["experimentName"],
+        libregion = expand(os.path.join(datadir, "filtered_tiles_libregion/ALL_{tile}_Bottom_filtered.CPseq"), tile=TILES)
     output:
-        CPfluor = config["fluordir"] + "{condition}/%s_{tile}_{channel}_600ms_{timestamp}.CPfluor" % config["experimentName"]#,
-        #roff = expand(datadir + "roff/{condition}/%s_{tile}_{channel}_600ms_{timestamp}.roff")
+        CPfluor = os.path.join(config["fluordir"], "{condition}/%s_{tile}_{channel}_600ms_{timestamp}.CPfluor") % config["experimentName"]#,
+        #roff = expand(os.path.join(datadir, "roff/{condition}/%s_{tile}_{channel}_600ms_{timestamp}.roff")
     params:
-        image_dir = config["tifdir"] + "{condition}/",
-        seq_dir = datadir + "filtered_tiles_libregion/",
-        fluor_dir = config["fluordir"] + "{condition}/",
-        roff_dir = datadir + "roff/{condition}/",
+        image_dir = config["tifdir"],  "{condition}/",
+        seq_dir = os.path.join(datadir, "filtered_tiles_libregion/"),
+        fluor_dir = config["fluordir"],  "{condition}/",
+        roff_dir = os.path.join(datadir, "roff/{condition}/"),
         reg_subset = "LibRegion",
-        log_dir = expdir + "log/quantify_image_{condition}.log",
+        log_dir = os.path.join(expdir,  "log/quantify_image_{condition}.log"),
         num_cores = "18",
         data_scaling = "MiSeq_to_TIRFStation1",
         cluster_memory = "40G",
@@ -261,7 +264,7 @@ rule write_old_mapfile:
     input:
         config['mapfile']
     output:
-        oldmapfile = datadir + 'tmp/' + config["imagingExperiment"] + '.map'
+        oldmapfile = os.path.join(datadir, 'tmp/', config["imagingExperiment"], '.map')
     params:
         fluordir = config["fluordir"],
         cluster_memory = "500M",
@@ -278,7 +281,7 @@ rule write_old_mapfile:
 rule combine_signal:
     input:
         fluorfiles = fluor_files,
-        oldmapfile = datadir + 'tmp/' + config["imagingExperiment"] + '.map',
+        oldmapfile = os.path.join(datadir, 'tmp/', config["imagingExperiment"], '.map'),
         libdata = sequencingResult
     output:
         get_series_tile_filenames(config["seriesdir"], config["prefix"])
@@ -317,14 +320,14 @@ rule normalize_signal:
         mapfile = config["mapfile"],
         annotation = config["referenceLibrary"]
     output:
-        out_file = datadir + 'series_normalized/' + config["imagingExperiment"] + "_normalized.pkl",
-        xdata_file = datadir + 'series_normalized/' + config["imagingExperiment"] + "_xdata.txt"
+        out_file = os.path.join(datadir, 'series_normalized/', config["imagingExperiment"], "_normalized.pkl"),
+        xdata_file = os.path.join(datadir, 'series_normalized/', config["imagingExperiment"], "_xdata.txt")
     params:
-        figdir = expdir + "fig/normalization_%s/"%config["imagingExperiment"],
+        figdir = os.path.join(expdir,  "fig/normalization_%s/"%config["imagingExperiment"]),
         green_norm_condition = config["greenNormCondition"],
         ext = ".pdf",
         variant_col = config["variantCol"],
-        smooth = 'savgol_7_2' # savgol_{window_length}_{polyorder} or 'None'
+        smooth = config['smooth'] # savgol_{window_length}_{polyorder} e.g. savgol_7_2 or 'None'
     conda:
         "envs/fitting.yml"    
     threads:
@@ -336,10 +339,10 @@ rule normalize_signal:
 rule fit_single_cluster:
     input:
         normalized = normalizedSeries,
-        xdata = datadir + "series_normalized/" + config["imagingExperiment"] + "_xdata.txt",
+        xdata = os.path.join(datadir, "series_normalized/", config["imagingExperiment"], "_xdata.txt"),
         mapfile = config["mapfile"]
     output:
-        datadir + "fitted_single_cluster/" + config["imagingExperiment"] + ".CPfitted.gz"
+        os.path.join(datadir, "fitted_single_cluster/", config["imagingExperiment"], ".CPfitted.gz")
     threads:
         18
     params:
@@ -354,11 +357,11 @@ rule fit_single_cluster:
 ## bootstrap_variant_median
 rule bootstrap_variant_median:
     input:
-        cf = datadir + "fitted_single_cluster/" + config["imagingExperiment"] + ".CPfitted.gz",
+        cf = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPfitted.gz")
         annotation = sequencingResult.replace('.CPseq', '.CPannot')
     output:
-        variant = datadir + "fitted_single_cluster/" + config["imagingExperiment"] + ".CPvariant",
-        good_clusters = datadir + "fitted_single_cluster/" + config["imagingExperiment"] + "_good_cluster_ind.txt"
+        variant = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant")
+        good_clusters = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + "_good_cluster_ind.txt")
     params:
         p = "dH Tm",
         n_samples = "100",
@@ -380,13 +383,13 @@ rule bootstrap_variant_median:
 ## fit_fmax_fmin_distribution
 rule fit_fmax_fmin_distribution:
     input:
-        vf = datadir + "fitted_single_cluster/" + config["imagingExperiment"] + ".CPvariant"
+        vf = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant")
     output:
-        fm = datadir + "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"],
-        plots = directory(expdir + "fig/fmax_fmin_%s/"%config["imagingExperiment"])
-        # plots = expand(expdir + "fig/fmax_fmin/{plotname}"%config["experimentName"], plotname=['fmax_vs_dG_init.pdf', 'fmin_vs_dG_init.pdf'])
+        fm = os.path.join(datadir, "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"])
+        plots = directory(expdir,  "fig/fmax_fmin_%s/"%config["imagingExperiment"])
+        # plots = expand(expdir,  "fig/fmax_fmin/{plotname}"%config["experimentName"], plotname=['fmax_vs_dG_init.pdf', 'fmin_vs_dG_init.pdf'])
     params:
-        figdir = expdir + "fig/fmax_fmin_%s/"%config["imagingExperiment"],
+        figdir = os.path.join(expdir,  "fig/fmax_fmin_%s/"%config["imagingExperiment"]),
         fmax_q = config["query"]["fmaxVariant"].replace(' ', ''),
         fmin_q = config["query"]["fminVariant"].replace(' ', ''),
         variant_q = config["query"]["variant"].replace(' ', '')
@@ -405,19 +408,19 @@ rule fit_fmax_fmin_distribution:
 rule fit_refine_variant:
     input:
         cluster = normalizedSeries,
-        variant = datadir + "fitted_single_cluster/" + config["imagingExperiment"] + ".CPvariant",
-        xdata = datadir + "series_normalized/" + config["imagingExperiment"] + "_xdata.txt",
+        variant = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant")
+        xdata = os.path.join(datadir, "series_normalized/",  config["imagingExperiment"] + "_xdata.txt")
         mapfile = config["mapfile"],
-        fm = datadir + "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"],
+        fm = os.path.join(datadir, "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"])
         annotation = sequencingResult.replace('.CPseq', '.CPannot')
     output:
-        fitted = datadir + "fitted_variant/" + config["imagingExperiment"] + ".CPvariant.gz"
+        fitted = os.path.join(datadir, "fitted_variant/",  config["imagingExperiment"] + ".CPvariant.gz")
     params:
-        figdir = expdir + "fig/%s-fit_refine_variant/"%config["imagingExperiment"],
+        figdir = os.path.join(expdir,  "fig/%s-fit_refine_variant/"%config["imagingExperiment"]),
         p = "dH Tm",
         n_bootstraps = "100",
         vc = config["variantCol"],
-        good_clusters = datadir + "fitted_single_cluster/" + config["imagingExperiment"] + "_good_cluster_ind.txt",
+        good_clusters = os.path.join(datadir, "fitted_single_cluster/", config["imagingExperiment"] + "_good_cluster_ind.txt")
         variant_q = config["query"]["variant"].replace(" ", ""),
         cluster_time = "48:00:00",
         cluster_memory = "32G"

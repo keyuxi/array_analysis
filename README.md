@@ -10,7 +10,7 @@ Install an environment with snakemake:
 
 ```bash
 conda install -y -c conda-forge mamba
-mamba create -y -c conda-forge -c bioconda -n snakemake snakemake numpy pandas matplotlib seaborn
+mamba create -y -c conda-forge -c bioconda -n snakemake python=3.9.1 snakemake=6.9.1 numpy=1.21.2 pandas=1.3.3 matplotlib=3.4.3 seaborn=0.11.2
 ```
 
 This may take a while.
