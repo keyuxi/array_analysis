@@ -71,6 +71,9 @@ greenNormCondition:
     Green07_Cy3
 variantCol:
     SEQID
+smooth:
+    # savgol_{window_length}_{polyorder} e.g. savgol_7_2 or 'None'
+    None
 query:
     # query strings to filter for good fits
     # need to double quote

@@ -235,11 +235,10 @@ rule quantify_images:
         libregion = expand(os.path.join(datadir, "filtered_tiles_libregion/ALL_{tile}_Bottom_filtered.CPseq"), tile=TILES)
     output:
         CPfluor = os.path.join(config["fluordir"], "{condition}/%s_{tile}_{channel}_600ms_{timestamp}.CPfluor") % config["experimentName"]#,
-        #roff = expand(os.path.join(datadir, "roff/{condition}/%s_{tile}_{channel}_600ms_{timestamp}.roff")
     params:
-        image_dir = config["tifdir"],  "{condition}/",
+        image_dir = os.path.join(config["tifdir"],  "{condition}/"),
         seq_dir = os.path.join(datadir, "filtered_tiles_libregion/"),
-        fluor_dir = config["fluordir"],  "{condition}/",
+        fluor_dir = os.path.join(config["fluordir"],  "{condition}/"),
         roff_dir = os.path.join(datadir, "roff/{condition}/"),
         reg_subset = "LibRegion",
         log_dir = os.path.join(expdir,  "log/quantify_image_{condition}.log"),
@@ -264,7 +263,7 @@ rule write_old_mapfile:
     input:
         config['mapfile']
     output:
-        oldmapfile = os.path.join(datadir, 'tmp/', config["imagingExperiment"], '.map')
+        oldmapfile = os.path.join(datadir, 'tmp/', config["imagingExperiment"] + '.map')
     params:
         fluordir = config["fluordir"],
         cluster_memory = "500M",
@@ -281,12 +280,12 @@ rule write_old_mapfile:
 rule combine_signal:
     input:
         fluorfiles = fluor_files,
-        oldmapfile = os.path.join(datadir, 'tmp/', config["imagingExperiment"], '.map'),
+        oldmapfile = os.path.join(datadir, 'tmp/', config["imagingExperiment"] + '.map'),
         libdata = sequencingResult
     output:
         get_series_tile_filenames(config["seriesdir"], config["prefix"])
     params:
-        output_directory = directory(config["seriesdir"]),
+        output_directory = config["seriesdir"],
         cluster_memory = "80G",
         cluster_time = "00:30:00",
         num_cores = "6"
@@ -320,8 +319,8 @@ rule normalize_signal:
         mapfile = config["mapfile"],
         annotation = config["referenceLibrary"]
     output:
-        out_file = os.path.join(datadir, 'series_normalized/', config["imagingExperiment"], "_normalized.pkl"),
-        xdata_file = os.path.join(datadir, 'series_normalized/', config["imagingExperiment"], "_xdata.txt")
+        out_file = os.path.join(datadir, 'series_normalized/',  "%s_normalized.pkl" % config["imagingExperiment"]),
+        xdata_file = os.path.join(datadir, 'series_normalized/', "%s_xdata.txt" % config["imagingExperiment"])
     params:
         figdir = os.path.join(expdir,  "fig/normalization_%s/"%config["imagingExperiment"]),
         green_norm_condition = config["greenNormCondition"],
@@ -339,10 +338,10 @@ rule normalize_signal:
 rule fit_single_cluster:
     input:
         normalized = normalizedSeries,
-        xdata = os.path.join(datadir, "series_normalized/", config["imagingExperiment"], "_xdata.txt"),
+        xdata = os.path.join(datadir, 'series_normalized/', "%s_xdata.txt" % config["imagingExperiment"]),
         mapfile = config["mapfile"]
     output:
-        os.path.join(datadir, "fitted_single_cluster/", config["imagingExperiment"], ".CPfitted.gz")
+        os.path.join(datadir, "fitted_single_cluster/", "%s.CPfitted.gz" % config["imagingExperiment"])
     threads:
         18
     params:
@@ -357,10 +356,10 @@ rule fit_single_cluster:
 ## bootstrap_variant_median
 rule bootstrap_variant_median:
     input:
-        cf = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPfitted.gz")
+        cf = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPfitted.gz"),
         annotation = sequencingResult.replace('.CPseq', '.CPannot')
     output:
-        variant = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant")
+        variant = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant"),
         good_clusters = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + "_good_cluster_ind.txt")
     params:
         p = "dH Tm",
@@ -385,8 +384,8 @@ rule fit_fmax_fmin_distribution:
     input:
         vf = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant")
     output:
-        fm = os.path.join(datadir, "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"])
-        plots = directory(expdir,  "fig/fmax_fmin_%s/"%config["imagingExperiment"])
+        fm = os.path.join(datadir, "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"]),
+        plots = directory(os.path.join(expdir,  "fig/fmax_fmin_%s/"%config["imagingExperiment"])),
         # plots = expand(expdir,  "fig/fmax_fmin/{plotname}"%config["experimentName"], plotname=['fmax_vs_dG_init.pdf', 'fmin_vs_dG_init.pdf'])
     params:
         figdir = os.path.join(expdir,  "fig/fmax_fmin_%s/"%config["imagingExperiment"]),
@@ -408,10 +407,10 @@ rule fit_fmax_fmin_distribution:
 rule fit_refine_variant:
     input:
         cluster = normalizedSeries,
-        variant = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant")
-        xdata = os.path.join(datadir, "series_normalized/",  config["imagingExperiment"] + "_xdata.txt")
+        variant = os.path.join(datadir, "fitted_single_cluster/",  config["imagingExperiment"] + ".CPvariant"),
+        xdata = os.path.join(datadir, "series_normalized/",  config["imagingExperiment"] + "_xdata.txt"),
         mapfile = config["mapfile"],
-        fm = os.path.join(datadir, "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"])
+        fm = os.path.join(datadir, "fitted_fmax_fmin/%s-fmax_fmin.json" % config["imagingExperiment"]),
         annotation = sequencingResult.replace('.CPseq', '.CPannot')
     output:
         fitted = os.path.join(datadir, "fitted_variant/",  config["imagingExperiment"] + ".CPvariant.gz")
@@ -420,7 +419,7 @@ rule fit_refine_variant:
         p = "dH Tm",
         n_bootstraps = "100",
         vc = config["variantCol"],
-        good_clusters = os.path.join(datadir, "fitted_single_cluster/", config["imagingExperiment"] + "_good_cluster_ind.txt")
+        good_clusters = os.path.join(datadir, "fitted_single_cluster/", config["imagingExperiment"] + "_good_cluster_ind.txt"),
         variant_q = config["query"]["variant"].replace(" ", ""),
         cluster_time = "48:00:00",
         cluster_memory = "32G"
