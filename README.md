@@ -118,12 +118,12 @@ FLASHdir:
     /home/groups/wjg/kyx
 ```
 
-Example directory structure of the data processing directory is approximately like this, where different subfolders in `data` are different steps of processing. Note that you may include different days of array data here.
+An example directory structure of the data processing directory after running this snakemake workflow is shown below, where different subfolders in `data` are different steps of processing. Note that you may include array data from multiple experiments but the same chip here. This directory is usually kept on $OAK or $GROUP_SCRATCH. Note that if it's on $GROUP_SCRATCH, you will need to copy the needed output files to $OAK later.
 
 I also currently keep the folders of images for registration here and run a bash script stored in `bash_scripts` on array day. This is fast and it works, but may be incorporated in the future.
 
 ```bash
-NNNlib2b_Oct6
+{name-of-your-chip}
 ├── bash_scripts
 ├── data
 │   ├── aligned
@@ -132,21 +132,28 @@ NNNlib2b_Oct6
 │   ├── filtered_tiles
 │   ├── filtered_tiles_libregion
 │   ├── fluor
-│   ├── images_20211019
-│   ├── images_20211022
+│   ├── {your-array-experiment-name}
+│   ├── {another-array-experiment-name}
+│   ├── {registration-images}
 │   ├── library
-│   ├── Red05_Fid
-│   ├── Red_08_Fid
-│   ├── Red09_PostQuench
 │   ├── reference
 │   ├── roff
 │   ├── tiles
 │   └── tmp
 ├── fig
 │   └── fiducial
-├── NNN_scripts
 └── out
 ```
+
+You should prepare this working directory (`datadir` in the config file) before running the pipeline. An example directory after sequencing but before array is:
+
+```bash
+{name-of-your-chip}
+├── bash_scripts
+├── data
+    └── fastq
+```
+
 
 An example workflow after sequencing but before array experiment may look like:
 
@@ -248,6 +255,8 @@ Note: array data tif files should have the same prefix, i.e. experiment name lik
 2. If you need to tune the global variables for registration, the file is located at `scripts/array_tools/GlobalVars.m`. Common parameters to play with includes `correlationSuccessPeakHeight`, `maxOffsetGlobalRegistration`, and `scalingFactor`.
 
 ## Run it
+
+Run all `snakemake` commands right at the `array_analysis` directory, where `Snakefile` lives. `snakemake` will try to find `Snakefile` here.
 
 Run with `-np` for a dry run. Snakemake will print out the commands to execute.
 

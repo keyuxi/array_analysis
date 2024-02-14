@@ -8,7 +8,7 @@ configfile: "config/config_NNNlib2b_20240209.yaml"
 # --- Define Global Variables --- #
 
 datadir = config['datadir']
-expdir = os.path.normpath(os.path.join(datadir, '/../'))# + '/'
+expdir = os.path.normpath(os.path.join(datadir, '..'))
 sequencingResult = config["sequencingResult"]
 normalizedSeries = os.path.join(datadir, "series_normalized/",  config["imagingExperiment"] + "_normalized.pkl")
 fittedVariant = os.path.join(datadir, "fitted_variant/",  config["imagingExperiment"] + ".CPvariant.gz")
@@ -20,7 +20,6 @@ TILES_NO_ZERO_PAD = ['tile%d'%i for i in range(1,19)]
 assert config["processingType"] in ['pre-array', 'post-array']
 if config["processingType"] == "pre-array":
     fluor_files = []
-    # requested_output = "/oak/stanford/groups/wjg/kyx/data/rf003/sequence/ALL.CPseq"
     requested_output = ["%s_STATS.csv" % sequencingResult.replace('.CPseq', ''),
                         expand(os.path.join(expdir, "fig/fiducial/{tile}_Bottom_fiducial.png"), tile=TILES)]
 elif config["processingType"] == "post-array":
@@ -174,7 +173,7 @@ rule filter_tiles:
     params:
         tiledir = os.path.join(datadir, "tiles/"),
         filteredtiledir = os.path.join(datadir, "filtered_tiles/"),
-        cluster_memory = "16G",
+        cluster_memory = "24G",
         cluster_time = "5:00:00"
     conda:
         "envs/py36.yml"
@@ -185,10 +184,10 @@ rule filter_tiles:
     shell:
         """
         module load matlab
-        export MATLABPATH=/share/PI/wjg/lab/array_tools/CPscripts/:/share/PI/wjg/lab/array_tools/CPlibs/
-        python3 scripts/array_tools/CPscripts/alignmentFilterMultiple.py -rd {params.tiledir} -f {config[FIDfilter]} -od {params.filteredtiledir} -gv /share/PI/wjg/lab/array_tools -n 18 
- 
+        export MATLABPATH=scripts/array_tools/CPscripts/:scripts/array_tools/CPlibs/
+        python3 scripts/array_tools/CPscripts/alignmentFilterMultiple.py -rd {params.tiledir} -f {config[FIDfilter]} -od {params.filteredtiledir} -gv scripts/array_tools -n 18 
        """
+       
 rule filter_tiles_libregion:
     input:
         expand(os.path.join(datadir, "tiles/ALL_{tile}_Bottom.CPseq"), tile=TILES),
@@ -198,7 +197,7 @@ rule filter_tiles_libregion:
     params:
         tiledir = os.path.join(datadir, "tiles/"),
         filteredtiledir = os.path.join(datadir, "filtered_tiles_libregion/"),
-        cluster_memory = "16G",
+        cluster_memory = "32G",
         cluster_time = "5:00:00"
     conda:
         "envs/py36.yml"
