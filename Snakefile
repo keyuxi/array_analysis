@@ -143,7 +143,7 @@ rule merge_fastqs_to_CPseq:
         "envs/py36.yml"
     shell:
         """
-        python3 scripts/array_tools/CPscripts/mergeFastqReadsToCPseq.py -r1 {input.r1} -r2 {input.r2} -o {output} 
+        python3 array_tools/CPscripts/mergeFastqReadsToCPseq.py -r1 {input.r1} -r2 {input.r2} -o {output} 
         """
 
 rule split_CPseq:
@@ -161,7 +161,7 @@ rule split_CPseq:
         "envs/py36.yml"
     shell:
         """
-        python3 scripts/array_tools/CPscripts/splitCPseqIntoTiles.py -o {params.tiledir} -s bottom {input}
+        python3 array_tools/CPscripts/splitCPseqIntoTiles.py -o {params.tiledir} -s bottom {input}
         """
 
 rule filter_tiles:
@@ -184,8 +184,8 @@ rule filter_tiles:
     shell:
         """
         module load matlab
-        export MATLABPATH=scripts/array_tools/CPscripts/:scripts/array_tools/CPlibs/
-        python3 scripts/array_tools/CPscripts/alignmentFilterMultiple.py -rd {params.tiledir} -f {config[FIDfilter]} -od {params.filteredtiledir} -gv scripts/array_tools -n 18 
+        export MATLABPATH=array_tools/CPscripts/:array_tools/CPlibs/
+        python3 array_tools/CPscripts/alignmentFilterMultiple.py -rd {params.tiledir} -f {config[FIDfilter]} -od {params.filteredtiledir} -gv array_tools -n 18 
        """
        
 rule filter_tiles_libregion:
@@ -206,8 +206,8 @@ rule filter_tiles_libregion:
     shell:
         """
         module load matlab
-        export MATLABPATH=scripts/array_tools/CPscripts/:scripts/array_tools/CPlibs/
-        python3 scripts/array_tools/CPscripts/alignmentFilterMultiple.py -rd {params.tiledir} -f {config[LibRegionFilter]} -od {params.filteredtiledir} -gv scripts/array_tools -n 18
+        export MATLABPATH=array_tools/CPscripts/:array_tools/CPlibs/
+        python3 array_tools/CPscripts/alignmentFilterMultiple.py -rd {params.tiledir} -f {config[LibRegionFilter]} -od {params.filteredtiledir} -gv array_tools -n 18
         """
 
         
@@ -252,8 +252,8 @@ rule quantify_images:
     shell:
         """
         module load matlab
-        export MATLABPATH=scripts/array_tools/CPscripts:scripts/array_tools/CPlibs
-        python3 scripts/array_tools/CPscripts/quantifyTilesDownstream.py -id {params.image_dir} -ftd {params.seq_dir} -fd {params.fluor_dir} -rod {params.roff_dir} -n {params.num_cores} -rs {params.reg_subset} -sf {params.data_scaling} -gv scripts/array_tools/
+        export MATLABPATH=array_tools/CPscripts:array_tools/CPlibs
+        python3 array_tools/CPscripts/quantifyTilesDownstream.py -id {params.image_dir} -ftd {params.seq_dir} -fd {params.fluor_dir} -rod {params.roff_dir} -n {params.num_cores} -rs {params.reg_subset} -sf {params.data_scaling} -gv array_tools/
         """
 
 
@@ -294,7 +294,7 @@ rule combine_signal:
         "envs/py36.yml"
     shell:
         """
-        python3 scripts/array_tools/bin_py3/processData.py -mf {input.oldmapfile} -od {params.output_directory} --appendLibData {input.libdata} --num_cores {params.num_cores}
+        python3 array_tools/bin_py3/processData.py -mf {input.oldmapfile} -od {params.output_directory} --appendLibData {input.libdata} --num_cores {params.num_cores}
         """
 
 ## concat_tiles_signal: Concatenate one CPseries file per tile into one big CPseries file with all tiles
