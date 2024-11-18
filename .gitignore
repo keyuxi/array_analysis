@@ -11,6 +11,7 @@ scripts/test.py
 *.out
 .#*
 ._*
+._README.md
 *.sh#
 #Snakemake#
 config/#*.yaml#
@@ -19,8 +20,11 @@ cpseriestest.csv
 workspace.code-workspace
 *.ipynb*
 scripts/notebook
+scripts/__pycache__
+scripts/._*
 test.*
 _README*
 *DS_Store
 .cache/
 .conda/
+.snakemake/

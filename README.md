@@ -170,7 +170,7 @@ You should prepare this working directory (`datadir` in the config file) before 
 
 An example workflow after sequencing but before array experiment may look like:
 
-![an example workflow after sequencing but before array experiment](./example_pre-array_DAG.svg)
+![an example workflow after sequencing but before array experiment](./img/example_pre-array_DAG.svg)
 
 an example workflow after sequencing but before array experiment
 
